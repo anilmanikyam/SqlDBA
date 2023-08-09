@@ -1,0 +1,27 @@
+
+
+Setup.exe /q /ACTION=Install /FEATURES=SQL /INSTANCENAME=MSSQLSERVER /SQLSVCACCOUNT="<DomainName\UserName>" /SQLSVCPASSWORD="<StrongPassword>" /SQLSYSADMINACCOUNTS="<DomainName\UserName>" /AGTSVCACCOUNT="NT AUTHORITY\Network Service" /SQLSVCINSTANTFILEINIT="True" /IACCEPTSQLSERVERLICENSETERMS
+
+
+
+<D:\New folder\SQL 2012 Evaluation Edition>\Setup.exe /ACTION=Install/ConfigurationFile=D:\New folder\SQL 2012 Evaluation Edition\ConfigurationFile.ini /Q
+
+<D:\New folder\SQL 2012 Evaluation Edition>Setup.exe /IACCEPTSQLSERVERLICENSETERMS /ACTION=Install /ConfigurationFile=D:\DBASQL\SQL2012EvaluationEdition\ConfigurationFile.ini /Q
+
+
+/IACCEPTSQLSERVERLICENSETERMS /ACTION=UPGRADE 
+
+
+    Set – QUIET="True"
+    Add – IACCEPTSQLSERVERLICENSETERMS="True"
+    Set – SQLSYSADMINACCOUNTS="YourDomain\Administrators"
+    Remove – ADDCURRENTUSERASSQLADMIN="False"
+    Remove – UIMODE="Normal"
+
+
+
+CSCINDAE705262\ANILMANIKYAM
+
+    
+
+ACTION="Install" 
