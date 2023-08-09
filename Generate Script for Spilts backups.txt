@@ -1,0 +1,33 @@
+-- Prompt for database name and number of backups
+DECLARE @DBName NVARCHAR(50)
+DECLARE @NumBackups INT
+
+SET @DBName = N'test' -- Replace with actual database name
+SET @NumBackups = 6 -- Replace with desired number of backups
+
+-- Generate the backup file name prefix
+DECLARE @BackupFileNamePrefix NVARCHAR(100) = N'C:\test\' + @DBName + N'_Backup_'
+
+-- Generate the backup script for each backup
+DECLARE @BackupIndex INT = 1
+DECLARE @BackupFileName NVARCHAR(100)
+DECLARE @BackupStatements NVARCHAR(MAX) = ''
+
+WHILE @BackupIndex <= @NumBackups
+BEGIN
+    SET @BackupFileName = @BackupFileNamePrefix + CAST(@BackupIndex AS NVARCHAR(10)) + N'.bak'
+    SET @BackupStatements = @BackupStatements + N'DISK = N''' + @BackupFileName + N''', ' + CHAR(13)
+
+    SET @BackupIndex = @BackupIndex + 1
+END
+
+-- Remove the trailing comma and space from the last backup statement
+SET @BackupStatements = LEFT(@BackupStatements, LEN(@BackupStatements) - 3)
+
+-- Generate the complete backup script
+DECLARE @Script NVARCHAR(MAX)
+SET @Script = N'BACKUP DATABASE ' + QUOTENAME(@DBName) + N' TO' + CHAR(13) + @BackupStatements + ' ' + N'WITH NOFORMAT, NOINIT, NAME = N''' + @DBName + N'-Full Database Backup'', SKIP, NOREWIND, NOUNLOAD, STATS = 10' + CHAR(13) 
+
+PRINT @Script
+==============================
+https://www.mssqltips.com/sqlservertip/5668/sql-server-script-to-automatically-split-database-backups-into-multiple-backup-files/

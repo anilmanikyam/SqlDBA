@@ -1,0 +1,22 @@
+# Read the server list from a text file
+$Servers = Get-Content -Path "C:\Test\serverlist.txt"
+
+# Method 2: Using systeminfo command
+foreach ($Server in $Servers) {
+    $LastBootTime = & systeminfo /s $Server | Select-String "System Boot Time"
+    Write-Output "$Server - $LastBootTime"
+}
+
+
+##==================================================
+
+# Read the server list from a text file
+$Servers = Get-Content -Path "C:\Test\serverlist.txt"
+
+# Method 2: Using WMI (Get-WmiObject)
+foreach ($Server in $Servers) {
+    $LastBootTime = Get-WmiObject Win32_OperatingSystem -ComputerName $Server | Select-Object LastBootUpTime
+    $FormattedTime = [Management.ManagementDateTimeConverter]::ToDateTime($LastBootTime.LastBootUpTime)
+    Write-Output "$Server   $FormattedTime"
+}
+
