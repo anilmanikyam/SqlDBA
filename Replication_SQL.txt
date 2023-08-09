@@ -1,0 +1,137 @@
+1)Renaming the publication database is possible?
+No-but we can modify logical name and pysical names
+
+2)Triggers which are not participated in replication?
+Use a query hint "NOT FOR REPLICATION" while creating the trigger.or table 
+
+3)how can we drop an article?
+
+before 2014 sp2:
+
+sp_dropsubscription [ [ @publication= ] 'publication' ]  
+    [ , [ @article= ] 'article' ]  
+      , [ @subscriber= ] 'subscriber'  
+    [ , [ @destination_db= ] 'destination_db' ]  
+
+
+
+DECLARE @publication AS sysname;
+DECLARE @article as sysname;
+SET @publication=N'TestPublication';
+SET @article=N'Company';
+
+--Drop the transactional article.
+Use [AdventureWorks2014]
+EXEC sp_droparticle
+   @publication=@publication,
+   @article=@article,
+   @force_invalidate_snapshot=1;
+GO
+
+drop table tablename
+
+After 2014 sp2:
+exec sp_changepublication 
+ @publication = 'publication name', 
+ @property = 'allow_drop', 
+ @value = 'true'
+
+exec sp_changepublication @publication='TestReplication', @property='allow_drop', @value='true'
+
+method3:Use GUI -uncheck the article and drop.
+
+
+4)Re intialize the subscription?
+In SSMS go to Replication -> Local Publications -> Locate your publication and expand it. The below screenshot shows the details of the subscriptions.
+In SSMS go to Replication -> right click on replication and select 'Launch Replication Monitor', as shown below.-->All subscribers tab-->right click--> Reinitialize
+
+5)Generate snapshot of newly added article?
+set these two statements 'immediate_sync' and 'allow_anonymous'
+sp_helppublication
+SSMS-> Replication-> Local Publications-> right click on your publication -> Properties -> Click on 'View Snapshot Agent Status' -> Click on 'Start'
+
+
+6)Replication clean up
+Subscription clean up
+subscriber remove
+publisgher remove 
+if jobs are exist then remove those jobs as well
+
+7)How to check log reader agent properties?
+In SSMS, connect to the distribution server. Right click on Replication and click on Properties
+Click on Profile Defaults in the Distributor Properties window shown in Figure 3. The Agent Profiles window displays as shown in Figure 4.
+The right pane of the Agent Profiles window has all the replication agent profiles. Select Log Reader Agents from the list and you will see the profiles for the Log Reader. The ticked one is currently be used and you can click on to get the configuration values for the Log Reader Agent Profil
+
+8)important dmvs and tables for replication?
+MSsubscriptions	contains one row for each published article in a subscription
+MSdistribution_history	contains history rows for the Distribution Agents associated with the local Distributor
+MSrepl_commands	contains rows of replicated commands
+MSrepl_transactions	contains one row for each replicated transaction
+
+- sp_posttracertoken (used to push a token into a publication)
+- sp_helptracertokens (returns a row for each tracer token that has been inserted at a publisher for a given publication)
+- sp_helptracertokenhistory (returns latency information for a given token id value retrieved from either of the procedures above)
+- sp_deletetracertokenhistory (removes token records from the system meta tables)
+
+Caluculate the lattency:sp_replcounters
+
+9)If source and destination databases are having different schemas then what we need to do?
+If we look under the Destination Object section, we can see default behavior for the destination object owner to be the source Table owner.
+
+10)Allo initialisation from SQL server backup:
+Allow Initialization From Backup Files
+After the publication is created right click on your publication and select Properties. (In SSMS go to Replication > Local Publications > your publication and right click). On the properties window go to Subscription Options as shown below and change the "Allow initialization from backup files" setting to True.
+
+11)What happens if the Snapshot Agent has not completed when the Distribution or Merge Agent starts?
+It will not cause an error if the Distribution Agent or Merge Agent runs at the same time as the Snapshot Agent.
+
+12)In Transactional replication, If a table in database ‘A’(Publisher) is dropped, will the table get dropped in ‘B’(Subscriber)?
+You cannot drop a table that is replicated. You have to first drop the article.
+
+13)In Transactional Replication, If we drop a column in a table in database ‘A’, what will happen to the column in the same table in database ‘B’?
+Issuing ALTER TABLE … DROP COLUMN at the Publisher, will result in the command being replicated to the Subscriber.
+
+14)How can grants on the subscription database be configured to match grants on the publication database?
+Execute GRANT statements at the subscription database directly.
+Use a post-snapshot script to execute the statements.
+Use the stored procedure sp_addscriptexec to execute the statements.
+
+
+
+USE [master]
+GO
+CREATE LOGIN [test] WITH PASSWORD=N'alisha@123', DEFAULT_DATABASE=[master], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+GO
+EXEC master..sp_addsrvrolemember @loginame = N'test', @rolename = N'sysadmin'
+GO
+
+
+WHILE 1=1
+BEGIN
+INSERT INTO [dbo].[myTable] VALUES ((select count(*) from mytable),'anil')
+END
+
+
+delete from mytable 
+
+
+EXEC sp_changepublication
+@publication = 'Pb1', --Enter your publication_name
+@property = 'allow_anonymous' ,
+@value = 'true'
+GO
+EXEC sp_changepublication
+@publication = 'Pb1', --Enter your publication name
+@property = 'immediate_sync' , 
+@value = 'true' 
+GO 
+
+exec sp_helppublication
+
+
+
+exec sp_addlogin @loginame='test123',@passwd='alisha@123',@defdb='master';
+EXEC master..sp_addsrvrolemember @loginame = N'test123', @rolename = N'sysadmin'
+
+
+
