@@ -47,6 +47,20 @@ In SSMS go to Replication -> right click on replication and select 'Launch Repli
 
 5)Generate snapshot of newly added article?
 set these two statements 'immediate_sync' and 'allow_anonymous'
+
+USE AN
+EXEC sp_changepublication
+@publication = ‘AN_Replication’,
+@property = N’allow_anonymous’,
+@value = ‘False’
+GO
+
+EXEC sp_changepublication
+@publication = ‘AN_Replication’,
+@property = N’immediate_sync’,
+@value = 'False‘
+
+
 sp_helppublication
 SSMS-> Replication-> Local Publications-> right click on your publication -> Properties -> Click on 'View Snapshot Agent Status' -> Click on 'Start'
 
@@ -85,11 +99,11 @@ After the publication is created right click on your publication and select Prop
 11)What happens if the Snapshot Agent has not completed when the Distribution or Merge Agent starts?
 It will not cause an error if the Distribution Agent or Merge Agent runs at the same time as the Snapshot Agent.
 
-12)In Transactional replication, If a table in database �A�(Publisher) is dropped, will the table get dropped in �B�(Subscriber)?
+12)In Transactional replication, If a table in database ‘A’(Publisher) is dropped, will the table get dropped in ‘B’(Subscriber)?
 You cannot drop a table that is replicated. You have to first drop the article.
 
-13)In Transactional Replication, If we drop a column in a table in database �A�, what will happen to the column in the same table in database �B�?
-Issuing ALTER TABLE � DROP COLUMN at the Publisher, will result in the command being replicated to the Subscriber.
+13)In Transactional Replication, If we drop a column in a table in database ‘A’, what will happen to the column in the same table in database ‘B’?
+Issuing ALTER TABLE … DROP COLUMN at the Publisher, will result in the command being replicated to the Subscriber.
 
 14)How can grants on the subscription database be configured to match grants on the publication database?
 Execute GRANT statements at the subscription database directly.
