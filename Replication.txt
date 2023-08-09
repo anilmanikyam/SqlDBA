@@ -1,0 +1,278 @@
+always on uses snapshot isolation level 2005 to read the data on secondary 
+Article-tables,sp,viwes etc..
+Publication- group of articles
+Distributor-All the articles chnages chnages details are stored in distibitorand transfered to subscriber
+
+
+
+
+Snapshot replication-Snapshot agent (locks)
+
+Transactional replication (only at the time of snapshot process it acquires th locks)
+
+uni directional --if any chnages to the target database then replication will break
+if the objects are not part of replication then wont break.
+
+All the tables which are participated in transactional replication which should contain atleast one primary key column
+
+Snapshot agent--used at first stage(to intializing)
+
+Snapshot agent take the snapshot of publisher and before apply it on subscriber it will drop table and re create and then apply generated script bcp utility to copy the data
+
+Log reader agent --get the changes the publisher and update in distibutor database
+
+Distributed agent --get the info from distributor database to subscriber database
+
+Merge Replication--multi directional 
+
+if same row chnages at both the publisher and subscriber then it will handled by using uniqueidentifier column
+and property ROWGUIDCOL
+
+Merge agent 
+
+Peer to Peer
+
+
+Distributor: contains info about publication database,articles,progress state of replication, T sql commands executed on publisher
+
+latency:time it will take to replicate 
+
+snapshot taken by bcp utility and stored in snapshot folder.
+
+
+******************************************
+declare @id int 
+select @id = 1
+while @id >=1 and @id <= 100
+begin
+    insert into emp values(@id, 'anil' + convert(varchar(5), @id))
+    select @id = @id + 1
+end
+
+*********************************
+SELECT publisher_database_id,
+xact_seqno,
+type,
+article_id,
+originator_id,
+command_id,
+partial_command,
+CAST(command AS NVARCHAR(MAX)) AS command_text,
+command,
+hashkey,
+originator_lsn
+FROM dbo.MSrepl_commands;
+*********************************
+
+
+Snapshot replication:(shared locks)
+
+Normal snapshot replication when snapshot genration process starts on publisher database it locks the entire all and entire tables which are participated in the 
+replication so data consistency will be there at that time there are no updates or deletes are wont perform on those tables y beacause all the tables are locked
+
+
+Trasactional replication:(lived locks)
+
+when snapshot generation process starts it acquires the lock on table and releases the each lock row one by one.and when snapshot started it will note one marker in log file til 
+snashot complete when the snashot applied on subscriber then drop and recreation of all tables will occure and that marker logs will apply now.
+
+*****************
+SELECT log_reuse_wait_desc,
+Name
+FROM sys.databases
+***********************
+
+replication causes the log file growth (VLFs cannot be reused)
+
+Pull subscription:  We have a different subscriptions and we need to stop and start the synchronization on subscriber on different timings then we can use pull
+Push Subscription: any where (general)--fastest data moving from distributor to subscriber 
+
+Distibutor agent:(Different number of publications)
+If we have a different number of publications and we have a table with foriegn references in two tables and two tables are in different publication 
+then the distibutor agent inserts the data into publication in different order then we will get logical incosinstency 
+
+so better to maintain those in same publication(Any way Foriegn key columns wont replicate in the replication)
+
+******************************************
+
+All the articles with in a publication are reside on database object.
+
+******************************************
+
+
+Markers written into database logs during the snapshot generation.and then log reader agent picks those markers and then distibutor agent uses these markers which chnages need to be applied on subscriber.
+ 
+
+Distibutor Properties--we can add the one more distributor
+Publication Properties--We can add database in the replication (if it is enable then only db_owner will do the replication on the publication properties.)
+
+Publisher:
+PAL(Publication Access List ):Prevents from unauthorized users access the replication data
+
+Subscriber:
+
+Synchronize schedules:
+Run continuously-run continuously
+Run on dmand--manual
+Run on schedule -schedule
+
+Initialize when
+Imediately
+At first sync
+
+Retention settings will configure in publication(1) and distributor(3) only 
+MAx and Min retention settings--the max time the data in distributor before going to subcriber
+min retention -min time the data in distributor after the data went to subscriber 
+
+snap shot immediately and keep the snapshot available to initialize subscription --every snapshot is valid for atleast max retention time.
+
+Publication retention
+in push publication if the retention lapses the subscriber then entire subscription got removed and in push orphan remian in the distributor and we need to remove manually.
+
+Replication jobs:
+
+Snapshot agent:
+
+<ServerName>-<Publication database>-<Publication>-<Number>
+
+Log reader agent:
+
+<Publisher>-<Publication database>-<Number> (If any other publication can also use the same job )
+
+Distributor Agent:
+
+Push:
+<Publisher>-<Publication database>-<Publication>-<Subscriber>-<Number>
+Pull:
+<Publisher>-<Publication database>-<Publication>-<Subscriber>-<subscription database>-<GUID>
+
+SQL Agent Jobs:
+
+Agent history clean up-Delete the agent history records that keep track of agent's performance  
+
+Distibutor Clean up job-Deletes the old transaction history form the distribution database
+
+Replication agents check up-monitors the replication agents and creates an entry in the windows event log if it fails
+
+Replication monitor refresher for distribution-used by replication monitor to refresh cached queries.
+
+Reinitilaize subscriptions having data validation failures-Identifies subscriptions with data validation error and sets them up for re initilization.
+
+Log reader agent job
+
+Snapshot agent job
+
+Expired subscription clean up-Removes subscriptions that fail to connect to the subscriber with in the publication retention period.
+
+
+Merge replication:
+
+Snapshot agent 
+
+Triggers tables and views
+
+Merge agent
+
+Snashot process -It acquires lock n all published databases 
+
+Actually it wont acquire the locks on published tables it locked the meta data of published tables which were generated by the merge replication triggers.
+The merge triggers will write data in the meta data tables to at that time it get locked (how much it got locked depends on the size of data from last sync)
+
+Merge replication defines 3 triggers on published database
+
+MSMerge_???_Hexadecimal number(Internal article number)
+
+???--del,ins,upd
+
+MSmerge_tr_alterschemaonly 
+
+MSmerge_tr_altertable
+
+MSmerge_tr_altertrigger
+
+MSmerge_tr_alterview
+
+The chnages stored in metadata tables and tables begin with MSmerge_.and some views also 
+
+The merge agents gets those chnages wich are stored on those meta data (which are triggered by the replication triggers)
+
+**************************************************
+Commands
+
+Publisher-sp_replcmds
+
+Distibutor:MSreplcmds and MSreplTrasc
+
+Subscriber:
+
+sp_replmonitorsubscriberpending
+
+***************************************************
+
+Tracer Tockens: tracer tockens are special timestamp trasaction that are stored with the log files and log reader agent get those data and store it into distributor tables
+2 tables are there in the distributor and we can find the info about subscriber and publisher on those.
+
+**************************
+
+SQL 2012 --replication supports alwayson,replication supports extended events
+Limitations:it wont support bidirectional and peer to peer replication when we are using always on
+Subscriber wont be a publisher at any point of time.
+
+SQL 2016-in memory OLTP
+
+SQL 2014 
+
+
+Merge replication :
+
+Most of the articles are schema-only articles that means only object defenition should be replicated Procedure execution is not possible
+
+Highlighted table is download -only 
+
+If we can go to articles properties-->if we can select synchronization direction 
+
+Bidirectional download-only subscriber,allow subscriber chnages
+
+Download-only to subscriber,prohibit subscriber changes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
