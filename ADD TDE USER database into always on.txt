@@ -1,0 +1,115 @@
+Select name, is_encrypted from sys.databases
+SELECT * FROM sys.symmetric_keys;
+
+---Take backup from primary Replica.
+BACKUP SERVICE MASTER KEY TO FILE = '\\Node1\tde\SMK'   
+    ENCRYPTION BY PASSWORD = 'HYD@123'  
+
+
+---Restore in Secondary replicas,
+Restore SERVICE MASTER KEY from FILE = '\\Node1\tde\SMK'   
+    DECRYPTION BY PASSWORD = 'HYD@123'  
+
+
+
+----
+Select name, is_encrypted from sys.databases
+
+--Step1:Take the full database backup of Dba to be on safe side.
+BACKUP DATABASE [dba] TO  DISK = '\\Node1\tde\dba.bak' WITH NOFORMAT, NOINIT,  
+NAME = N'dba-Full Database Backup', SKIP, NOREWIND, NOUNLOAD,  STATS = 10
+GO
+
+---Create database master key
+USE master;
+Go
+CREATE MASTER KEY 
+ENCRYPTION BY PASSWORD = 'HYd@123';
+GO
+
+
+--Back up master key.
+USE Master;   
+GO  
+OPEN MASTER KEY DECRYPTION BY PASSWORD = 'HYd@123';   
+BACKUP MASTER KEY TO FILE = '\\Node1\tde\exportedmasterkey'   
+ENCRYPTION BY PASSWORD = 'HYd@123';   
+
+--Restore in all secondary replicas.
+---------------
+USE master
+GO
+
+RESTORE MASTER KEY 
+FROM FILE = '\\Node1\tde\exportedmasterkey'
+DECRYPTION BY PASSWORD = 'HYd@123'
+ENCRYPTION BY PASSWORD = 'HYd@123'
+
+--Step3:Create certificate in Primary replica
+USE master;
+GO 
+CREATE CERTIFICATE TDE_Certificate
+       WITH SUBJECT='Certificate for TDE';
+GO
+
+--Step4:Create database encryption key
+USE dba
+GO
+CREATE DATABASE ENCRYPTION KEY
+WITH ALGORITHM = AES_256
+ENCRYPTION BY SERVER CERTIFICATE TDE_Certificate;  
+
+--Step6:Turn on encryption on database
+ALTER DATABASE Dba 
+SET ENCRYPTION ON
+
+
+--Step5:Back up the certificate and the private key associated with the certificate
+USE master;
+GO
+BACKUP CERTIFICATE [TDE_Certificate]
+TO FILE = '\\Node1\tde\TDE_Certificate_For_dbadatabase.cer'
+WITH PRIVATE KEY (file='\\Node1\tde\TDE_dba_private_CertKey.pvk',
+ENCRYPTION BY PASSWORD='HYd@123');
+
+--To Restore the certificate in All secondary replicas.
+---OPEN MASTER KEY DECRYPTION BY PASSWORD = 'HYd@123'; Please use this option if u get any error and try.
+USE master;
+GO
+Create CERTIFICATE [TDE_Certificate]
+From FILE = '\\Node1\tde\TDE_Certificate_For_dbadatabase.cer'
+WITH PRIVATE KEY (file='\\Node1\tde\TDE_dba_private_CertKey.pvk',
+DECRYPTION BY PASSWORD='HYd@123');
+
+
+--Step8:Check encryption enabled
+Select name, is_encrypted from sys.databases
+Select * from sys.certificates
+
+
+
+
+
+---Create availaiiity groups On Primary Replica[which is node1 now]
+USE master;
+GO
+CREATE AVAILABILITY GROUP [TDE]
+WITH (DB_FAILOVER = ON)
+FOR REPLICA ON 'node1' WITH (ENDPOINT_URL = 'TCP://Node1.abc.com:5022', AVAILABILITY_MODE = SYNCHRONOUS_COMMIT, FAILOVER_MODE = AUTOMATIC),
+   	       'node2' WITH (ENDPOINT_URL = 'TCP://Node2.abc.com:5022', AVAILABILITY_MODE = SYNCHRONOUS_COMMIT, FAILOVER_MODE = AUTOMATIC);
+
+
+
+
+
+--Add the database to AG from primary
+USE master 
+GO
+ALTER AVAILABILITY GROUP TDE ADD DATABASE [Dba]
+
+
+
+--Use on secondary replicas Node2
+Use Master
+Go
+ALTER DATABASE Dba SET HADR AVAILABILITY GROUP = TDE;
