@@ -1,0 +1,36 @@
+EXEC xp_cmdshell 'net use G: \\10.143.17.81\E$ /user:uk\anil.manikyam Summer06'
+go
+BACKUP DATABASE aboutgridnet TO DISK='F:\backup\aboutgridnet_db_bkup.bak'
+go
+EXEC xp_cmdshell 'net use G: /delete'
+go
+
+
+\\10.143.17.81\E$
+
+EXEC xp_cmdshell 'net use F: \\10.143.17.81\E$ /user:ngcgb\hkaur Summer@08'
+go
+BACKUP DATABASE aboutgridnet TO DISK='F:\backup\aboutgridnet_db_bkup.bak'
+go
+EXEC xp_cmdshell 'net use F: /delete'
+go
+
+EXEC xp_cmdshell 'net use F: \\10.143.17.81\E$ /user:ngcgb\hkaur Summer@08'
+go
+BACKUP DATABASE aboutgridnet TO DISK='F:\backup\aboutgridnet_db_bkup.bak'
+go
+EXEC xp_cmdshell 'net use F: /delete'
+go
+
+
+
+EXEC xp_cmdshell 'net use G: \\10.143.17.81\E$ /user:uk\anil.manikyam Summer06'
+
+EXEC xp_cmdshell 'dir G:\'
+go
+--BACKUP DATABASE aboutgridnet TO DISK='F:\backup\aboutgridnet_db_bkup.bak'
+go
+--EXEC xp_cmdshell 'net use F: /delete'
+go
+
+
